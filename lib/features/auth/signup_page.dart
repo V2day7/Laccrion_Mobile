@@ -20,27 +20,27 @@ class _SignupPageState extends ConsumerState<SignupPage> {
     try {
       final result = await ref
           .read(authControllerProvider.notifier)
-          .signUp(_emailCtrl.text.trim(), _pwCtrl.text);
+          .signUp(_emailCtrl.text.trim(), _pwCtrl.text.trim());
 
       if (!mounted) return;
+
       if (result == null) {
-        // success and signed in
         context.go('/onboarding');
       } else if (result == 'confirm_email') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Account created — check your email to confirm.'),
+            duration: Duration(seconds: 6),
           ),
         );
         context.go('/login');
       } else {
         final msg = result.toLowerCase();
-        if (msg.contains('email_provider_disabled') ||
-            msg.contains('email signups are disabled')) {
+        if (msg.contains('over_email_send_rate_limit')) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'Email signups are disabled for this project. Enable email signups in your Supabase dashboard (Authentication → Settings), or create the user manually in Supabase (Authentication → Users).',
+                'Rate limit reached. For testing, create a user in Supabase Auth → Users, then login.',
               ),
               duration: Duration(seconds: 8),
             ),
@@ -52,10 +52,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
         }
       }
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Signup error: $e')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Signup error: $e')));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -64,34 +64,80 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign up')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _emailCtrl,
-                decoration: const InputDecoration(labelText: 'Email'),
+      appBar: AppBar(title: const Text('Create account')),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Start training',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Create your Laccrion account',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 18),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _emailCtrl,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: _pwCtrl,
+                            obscureText: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Password',
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton(
+                              onPressed: _loading ? null : _signUp,
+                              child: _loading
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text('Create account'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => context.go('/login'),
+                    child: const Text('Already have an account? Login'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _pwCtrl,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _loading ? null : _signUp,
-                  child: _loading
-                      ? const CircularProgressIndicator()
-                      : const Text('Create account'),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

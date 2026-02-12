@@ -12,30 +12,42 @@ class SplashPage extends ConsumerStatefulWidget {
 
 class _SplashPageState extends ConsumerState<SplashPage> {
   @override
-  Widget build(BuildContext context) {
-    Future.microtask(() async {
-      final auth = ref.read(authControllerProvider.notifier);
-      await auth.refreshProfile();
-      if (!mounted) return;
-      final state = ref.read(authControllerProvider);
-      if (state.user == null) {
-        context.go('/login');
-        return;
-      }
-      final onboardingDone = state.profile?['onboarding_done'] == true;
-      if (!onboardingDone) {
-        context.go('/onboarding');
-      } else {
-        context.go('/home');
-      }
-    });
+  void initState() {
+    super.initState();
+    _init();
+  }
 
-    return Scaffold(
+  Future<void> _init() async {
+    final auth = ref.read(authControllerProvider.notifier);
+
+    await auth.refreshProfile();
+
+    if (!mounted) return;
+
+    final state = ref.read(authControllerProvider);
+
+    if (state.user == null) {
+      context.go('/login');
+      return;
+    }
+
+    final onboardingDone = state.profile?['onboarding_done'] == true;
+
+    if (!onboardingDone) {
+      context.go('/onboarding');
+    } else {
+      context.go('/home');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
       body: SafeArea(
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               FlutterLogo(size: 84),
               SizedBox(height: 12),
               Text(
