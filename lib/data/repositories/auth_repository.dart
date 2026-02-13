@@ -26,14 +26,23 @@ class AuthRepository {
     return res;
   }
 
-  /// Must be called only when authenticated (auth.uid() exists).
+  /// Create profile ONLY if it doesn't exist (prevents XP/level reset).
   Future<void> ensureProfileExists(String userId) async {
-    await _client.from('profiles').upsert({
-      'id': userId,
-      'training_type': 'strength',
-      'onboarding_done': false,
-      'xp': 0,
-      'level': 1,
-    });
+    final existing = await fetchProfile(userId);
+    if (existing != null) return;
+
+    // Insert defaults only once.
+    // If two calls race, one may fail with duplicate key — that's okay.
+    try {
+      await _client.from('profiles').insert({
+        'id': userId,
+        'training_type': 'strength',
+        'onboarding_done': false,
+        'xp': 0,
+        'level': 1,
+      });
+    } catch (_) {
+      // Ignore duplicate insert errors if it was created by another call.
+    }
   }
 }
